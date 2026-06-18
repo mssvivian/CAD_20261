@@ -1,0 +1,30 @@
+/* Fonte geral */
+body {
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-size: 10pt;
+}
+
+/* Código em bloco */
+
+pre, code {
+    font-family: Consolas, monospace;
+    font-size: 7.5pt;
+}
+
+/* Títulos mais compactos */
+h1, h2, h3, h4 {
+    margin-top: 0.5em;
+    margin-bottom: 0.25em;
+}
+
+/* Parágrafos */
+p {
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+}
+
+/* Listas */
+ul, ol {
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+}

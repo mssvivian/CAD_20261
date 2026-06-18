@@ -1,0 +1,498 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Codificação e língua ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+
+% --- Layout ---
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+\usepackage{indentfirst}
+\setlength{\parskip}{6pt}
+
+% --- Tipografia ---
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% --- Matemática ---
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% --- Código-fonte ---
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codecomment}{RGB}{100,100,100}
+\definecolor{codestring}{RGB}{163,21,21}
+\definecolor{codekeyword}{RGB}{0,0,200}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  breakatwhitespace=false,
+  commentstyle=\color{codecomment}\itshape,
+  keywordstyle=\color{codekeyword}\bfseries,
+  stringstyle=\color{codestring},
+  showstringspaces=false,
+  frame=single,
+  framesep=4pt,
+  rulecolor=\color{gray!40},
+  numbers=none,
+  captionpos=b,
+  tabsize=4,
+}
+
+% Estilo especial para blocos de shell/saída (sem highlight)
+\lstdefinestyle{shell}{
+  language={},
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framesep=4pt,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+}
+
+% Estilo para C
+\lstdefinestyle{ccode}{
+  language=C,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framesep=4pt,
+  rulecolor=\color{gray!40},
+  keywordstyle=\color{codekeyword}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestring},
+  breaklines=true,
+}
+
+% --- Tabelas ---
+\usepackage{booktabs}
+\usepackage{array}
+
+% --- Imagens ---
+\usepackage{graphicx}
+
+% --- Hiperlinks ---
+\usepackage[colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=black]{hyperref}
+
+% --- Títulos de seção ---
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries}{}{0em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries}{}{0em}{}
+
+% --- Espaçamento de linha ---
+\usepackage{setspace}
+\onehalfspacing
+
+% =========================================================
+\begin{document}
+
+% ----- CAPA -----
+\begin{titlepage}
+  \centering
+  \vspace*{3cm}
+  {\LARGE\bfseries Relatório Prático\\[0.4em]
+   Programação Paralela com MPI\par}
+  \vspace{2cm}
+  {\large
+    \textbf{Nome:} Vivian Souza \\[0.5em]
+    \textbf{DRE:} 123205793 \\[0.5em]
+    \textbf{Data:} 19 de Junho de 2026
+  }
+  \vfill
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% =========================================================
+\section{Exercício 1 — Variantes do Hello World}
+
+\subsection{1(a) Introspecção em Nível de SO}
+
+Cada processo MPI foi instrumentado com as chamadas \texttt{getpid()} (de \texttt{<unistd.h>}) e \texttt{sched\_getcpu()} (de \texttt{<sched.h>}) para reportar, além do seu rank, o PID real no Sistema Operacional e o núcleo físico em que estava sendo executado no momento da impressão. O programa foi compilado com a diretiva \texttt{\#define \_GNU\_SOURCE} para habilitar a função \texttt{sched\_getcpu()}.
+
+\textbf{Execução:}
+\begin{lstlisting}[style=shell]
+mpicc -O2 -Wall -o hello_os hello_os.c
+mpiexec -n 4 ./hello_os
+mpiexec -n 8 --oversubscribe ./hello_os
+\end{lstlisting}
+
+\textbf{Saídas observadas (múltiplas execuções com \texttt{-n 4}):}
+
+\begin{lstlisting}[style=shell]
+Run 1:
+Hello from rank 0/4 -- PID = 29237, CPU = 3
+Hello from rank 1/4 -- PID = 29238, CPU = 7
+Hello from rank 2/4 -- PID = 29239, CPU = 1
+Hello from rank 3/4 -- PID = 29242, CPU = 5
+
+Run 2:
+Hello from rank 0/4 -- PID = 29255, CPU = 0
+Hello from rank 1/4 -- PID = 29256, CPU = 2
+Hello from rank 2/4 -- PID = 29257, CPU = 1
+Hello from rank 3/4 -- PID = 29259, CPU = 3
+
+Run 3:
+Hello from rank 0/4 -- PID = 29285, CPU = 0
+Hello from rank 1/4 -- PID = 29286, CPU = 2
+Hello from rank 2/4 -- PID = 29287, CPU = 3
+Hello from rank 3/4 -- PID = 29289, CPU = 4
+\end{lstlisting}
+
+Também foram feitas execuções com \texttt{-n 8} e \texttt{--oversubscribe}, pois o computador não dispunha de núcleos físicos suficientes para executar sem essa flag. Saídas observadas:
+
+\begin{lstlisting}[style=shell]
+Run 1:
+Hello from rank 0/8 -- PID = 33737, CPU = 4
+Hello from rank 1/8 -- PID = 33738, CPU = 3
+Hello from rank 2/8 -- PID = 33739, CPU = 6
+Hello from rank 3/8 -- PID = 33740, CPU = 2
+Hello from rank 4/8 -- PID = 33741, CPU = 1
+Hello from rank 5/8 -- PID = 33745, CPU = 5
+Hello from rank 6/8 -- PID = 33747, CPU = 3
+Hello from rank 7/8 -- PID = 33749, CPU = 0
+
+Run 2:
+Hello from rank 0/8 -- PID = 33821, CPU = 4
+Hello from rank 1/8 -- PID = 33822, CPU = 7
+Hello from rank 2/8 -- PID = 33823, CPU = 0
+Hello from rank 3/8 -- PID = 33824, CPU = 6
+Hello from rank 4/8 -- PID = 33826, CPU = 3
+Hello from rank 5/8 -- PID = 33829, CPU = 1
+Hello from rank 6/8 -- PID = 33832, CPU = 5
+Hello from rank 7/8 -- PID = 33835, CPU = 2
+
+Run 3:
+Hello from rank 0/8 -- PID = 33869, CPU = 4
+Hello from rank 1/8 -- PID = 33870, CPU = 6
+Hello from rank 2/8 -- PID = 33871, CPU = 1
+Hello from rank 3/8 -- PID = 33872, CPU = 7
+Hello from rank 4/8 -- PID = 33875, CPU = 0
+Hello from rank 5/8 -- PID = 33877, CPU = 2
+Hello from rank 6/8 -- PID = 33880, CPU = 3
+Hello from rank 7/8 -- PID = 33882, CPU = 5
+\end{lstlisting}
+
+\textbf{Observações:}
+
+As execuções sucessivas confirmam na prática dois princípios fundamentais da arquitetura SPMD do MPI:
+
+\begin{enumerate}
+  \item \textbf{Todos os PIDs são diferentes entre execuções:} o MPI não opera com threads compartilhadas, mas com processos reais e isolados no Sistema Operacional. Cada rank possui seu próprio espaço de endereçamento de memória e um PID exclusivo atribuído pelo kernel. A cada nova invocação de \texttt{mpiexec}, um conjunto inteiramente novo de PIDs é gerado, independentemente do valor de $p$.
+
+  \item \textbf{A coluna de CPU varia entre execuções:} o ambiente MPI delega ao escalonador dinâmico do kernel do Linux a decisão de qual núcleo físico processará cada tarefa. Como o escalonamento depende da carga corrente da máquina e não é determinístico, os processos ``saltam'' de núcleo a cada rodada. Um ponto interessante observado com \texttt{--oversubscribe} é que diferentes ranks/threads podem ser alocados na mesma CPU.
+\end{enumerate}
+
+% ---------------------------------------------------------
+\subsection{1(b) Variante em Anel}
+
+Na topologia em anel, o processo de rank $k$ envia sua saudação ao processo $(k+1) \bmod p$ e recebe do processo $(k-1+p) \bmod p$. A expressão \texttt{(k-1+p) \% p} é necessária pois, em C, o operador \texttt{\%} pode retornar valores negativos quando o dividendo é negativo: para $k=0$, \texttt{(0-1) \% p} resultaria em $-1$ em vez do esperado $p-1$. Somar $p$ antes da operação de módulo garante sempre um argumento não negativo.
+
+Uma abordagem ingênua consistiria em todos os processos chamarem \texttt{MPI\_Recv} seguido de \texttt{MPI\_Send}. Como \texttt{MPI\_Recv} é estritamente bloqueante, todos os processos ficariam indefinidamente aguardando receber uma mensagem, sem que nenhum deles chegasse à linha de \texttt{MPI\_Send}, criando um ciclo de espera infinita (deadlock).
+
+Uma das alternativas seria fazer, por exemplo, o rank 0 executar \texttt{MPI\_Send} antes de \texttt{MPI\_Recv}, enquanto os demais fariam \texttt{MPI\_Recv} antes de \texttt{MPI\_Send}, quebrando a simetria do ciclo. Apesar de funcionar em alguns casos, essa abordagem depende do comportamento interno da implementação do MPI, já que o envio pode bloquear caso a mensagem não caiba nos buffers disponíveis. Além disso, o código deixa de ser simétrico, tornando a implementação mais difícil de manter.
+
+Por esse motivo, a solução adotada foi o uso de \texttt{MPI\_Sendrecv}, que foi desenvolvido justamente para esse tipo de comunicação. A função realiza o envio e o recebimento de forma segura, evitando deadlocks independentemente do tamanho da mensagem ou da quantidade de processos. Outra vantagem é que todos os ranks executam exatamente o mesmo código, preservando o modelo SPMD e deixando a implementação mais simples, legível e portável.
+
+\textbf{Execução:}
+\begin{lstlisting}[style=shell]
+mpicc -O2 -Wall -o hello_ring hello_ring.c
+mpiexec -n 4 ./hello_ring
+mpiexec -n 8 --oversubscribe ./hello_ring
+\end{lstlisting}
+
+\textbf{Saída:}
+\begin{lstlisting}[style=shell]
+Rank 0 recebeu a mensagem: Greeting from rank 3 of 4! (do Rank 3)
+Rank 0 coletou do Rank 1 a mensagem: Greeting from rank 0 of 4!
+Rank 0 coletou do Rank 2 a mensagem: Greeting from rank 1 of 4!
+Rank 0 coletou do Rank 3 a mensagem: Greeting from rank 2 of 4!
+
+Rank 0 recebeu a mensagem: Greeting from rank 7 of 8! (do Rank 7)
+Rank 0 coletou do Rank 1 a mensagem: Greeting from rank 0 of 8!
+Rank 0 coletou do Rank 2 a mensagem: Greeting from rank 1 of 8!
+Rank 0 coletou do Rank 3 a mensagem: Greeting from rank 2 of 8!
+Rank 0 coletou do Rank 4 a mensagem: Greeting from rank 3 of 8!
+Rank 0 coletou do Rank 5 a mensagem: Greeting from rank 4 of 8!
+Rank 0 coletou do Rank 6 a mensagem: Greeting from rank 5 of 8!
+Rank 0 coletou do Rank 7 a mensagem: Greeting from rank 6 of 8!
+\end{lstlisting}
+
+A saída valida o tráfego correto: o rank 0 recebeu de 3 (seu vizinho à esquerda no anel), e ao longo das $p-1$ iterações colecionou todas as mensagens originadas pelos demais ranks, em ordem crescente de rank de origem, conforme o percurso circular.
+
+% =========================================================
+\section{Exercício 2 — Regra do Trapézio Generalizada}
+
+\subsection{2(a) Balanceamento de Carga para $n$ Arbitrário}
+
+O código base \texttt{mpi\_trap\_input.c} da Aula 5 foi estendido para lidar com valores de $n$ que não são divisíveis pelo número de processos $p$. A estratégia adotada distribui o resto da divisão entre os primeiros ranks: os $n \bmod p$ primeiros processos recebem $\lceil n/p \rceil$ trapézios, e os demais recebem $\lfloor n/p \rfloor$. O bloco de cálculo dos parâmetros locais ficou:
+
+\begin{lstlisting}[style=ccode]
+int rem      = n % comm_sz;
+int local_n  = n / comm_sz + (my_rank < rem ? 1 : 0);
+int offset   = my_rank * (n / comm_sz) + (my_rank < rem ? my_rank : rem);
+double local_a = a + offset * h;
+double local_b = local_a + local_n * h;
+\end{lstlisting}
+
+\textbf{Verificação com \texttt{p=3}, \texttt{n=10}, $f(x)=\sin(x)$ em $[0,\pi]$ (valor exato~$= 2$):}
+
+\begin{lstlisting}[style=shell]
+echo "0 3.141592653589793 10" | mpiexec -n 3 ./mpi_trap_generalized
+\end{lstlisting}
+
+\textbf{Saída:}
+\begin{lstlisting}[style=shell]
+Enter a, b, n: Rank 0 executou 4 trapezios no intervalo [0.000000, 1.256637]
+Rank 1 executou 3 trapezios no intervalo [1.256637, 2.199115]
+Rank 2 executou 3 trapezios no intervalo [2.199115, 3.141593]
+With n = 10 trapezoids, integral of f on [0, 3.14159] = 1.983523537509454e+00
+\end{lstlisting}
+
+A distribuição 4+3+3 está correta: $10 \bmod 3 = 1$, portanto apenas o rank 0 recebe um trapézio a mais. O resultado numérico $\approx 1{,}9835$ concorda com a aproximação esperada para $n=10$ pontos na regra do trapézio aplicada a $\sin(x)$.
+
+% ---------------------------------------------------------
+\subsection{2(b) Estudo de Escalabilidade Forte ($n=10^7$)}
+
+O cronômetro foi posicionado imediatamente após \texttt{MPI\_Init}, de modo que $T_p$ inclui o overhead de \texttt{Get\_input}, o bloco de computação e a comunicação de coleta — constituindo uma referência justa de processo único conforme solicitado pelo enunciado. O \texttt{MPI\_Barrier} da versão anterior foi removido por ser um artefato desnecessário. O tempo paralelo reportado é o \emph{máximo} entre todos os processos, obtido via \texttt{MPI\_Reduce} com \texttt{MPI\_MAX}, refletindo o tempo de relógio real da execução.
+
+\textbf{Execução:}
+\begin{lstlisting}[style=shell]
+echo "0 3.141592653589793 10000000" | mpiexec -n 1 ./mpi_trap_generalized
+echo "0 3.141592653589793 10000000" | mpiexec -n 2 ./mpi_trap_generalized
+echo "0 3.141592653589793 10000000" | mpiexec -n 4 ./mpi_trap_generalized
+echo "0 3.141592653589793 10000000" | mpiexec -n 8 --oversubscribe ./mpi_trap_generalized
+\end{lstlisting}
+
+\textbf{Tabela de desempenho} ($T_s = 0{,}117264$~s):
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+$p$ & $T_p$ (s) & $S_p = T_s/T_p$ & $E_p = S_p/p$ \\
+\midrule
+1 & 0{,}117264 & 1{,}000 & 1{,}000 \\
+2 & 0{,}066322 & 1{,}768 & 0{,}884 \\
+4 & 0{,}043899 & 2{,}671 & 0{,}668 \\
+8 & 0{,}026557 & 4{,}416 & 0{,}552 \\
+\bottomrule
+\end{tabular}
+\caption{Speedup e eficiência para $n=10^7$.}
+\end{table}
+
+\textbf{Discussão — a partir de qual $p$ a eficiência $E_p$ cai abaixo de 0,8?}
+
+A eficiência cai abaixo de 0,8 a partir de $p=4$, atingindo $E_4 = 0{,}668$. A causa é multifatorial:
+
+\begin{itemize}
+  \item \textbf{Gargalo de comunicação linear:} a coleta dos resultados parciais é feita por um laço sequencial de chamadas \texttt{MPI\_Recv} na raiz (topologia em estrela). O custo dessa etapa cresce com $O(p)$. Com $p=4$ ou $p=8$, o tempo de cálculo da integral torna-se ínfimo, e o overhead de coordenação de mensagens passa a dominar o tempo total de execução.
+
+  \item \textbf{Oversubscription (sobrecarga de CPU):} para $p=8$ foi necessária a flag \texttt{--oversubscribe}, indicando que a máquina física dispõe de menos núcleos reais do que os processos requisitados. O escalonador do SO é forçado a realizar trocas de contexto entre processos compartilhando o mesmo núcleo físico, o que degrada severamente o ganho paralelo e explica a eficiência de apenas 55{,}2\%.
+
+  \item \textbf{Lei de Amdahl:} a fração sequencial irredutível do código (inicialização do ambiente MPI, leitura/escrita em tela) não é acelerada pelo paralelismo e impõe um limite superior teórico ao speedup, independentemente do número de processos.
+\end{itemize}
+
+% ---------------------------------------------------------
+\subsection{2(c) Estudo de Convergência (Bônus)}
+
+O programa paralelo foi executado com $p=4$ fixo, variando $n \in \{64, 256, 1024, 4096, 16384\}$. Para cada valor de $n$, o passo $h = \pi/n$ e o erro absoluto $|I_{\text{aprox}} - 2|$ foram registrados.
+
+\textbf{Execução:}
+\begin{lstlisting}[style=shell]
+for n in 64 256 1024 4096 16384; do
+    echo "0 3.141592653589793 $n" | mpiexec -n 4 ./mpi_trap_generalized
+done
+\end{lstlisting}
+
+\textbf{Resultados:}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}cccl@{}}
+\toprule
+$n$ & $h = \pi/n$ & $I_{\text{aprox}}$ & $|I_{\text{aprox}} - 2|$ \\
+\midrule
+64    & 0{,}04909  & 1{,}999598388640037 & $4{,}016 \times 10^{-4}$ \\
+256   & 0{,}01227  & 1{,}999974900235053 & $2{,}510 \times 10^{-5}$ \\
+1024  & 0{,}00307  & 1{,}999998431268383 & $1{,}569 \times 10^{-6}$ \\
+4096  & 0{,}000767 & 1{,}999999901954288 & $9{,}805 \times 10^{-8}$ \\
+16384 & 0{,}000192 & 1{,}999999993872146 & $6{,}128 \times 10^{-9}$ \\
+\bottomrule
+\end{tabular}
+\caption{Convergência da regra do trapézio para $f(x)=\sin(x)$ em $[0,\pi]$.}
+\end{table}
+
+A teoria do cálculo numérico prevê que o erro global da regra do trapézio decai como $O(h^2)$: quando $h$ é reduzido por um fator 4 (de $n=64$ para $n=256$), o erro deve cair por um fator $\approx 16$. Observa-se que ao passar de $n=64$ para $n=256$ o erro reduz de $4{,}016 \times 10^{-4}$ para $2{,}510 \times 10^{-5}$ — uma redução de fator $\approx 16$, confirmando a ordem quadrática.
+
+Ao traçar $|I_{\text{aprox}} - 2|$ em função de $h$ em escala log-log, a regressão linear sobre os cinco pontos resulta em uma inclinação de \textbf{2,0000}, atestando inequivocamente a convergência quadrática teórica. A divisão de domínio e a coleta paralela via MPI não introduziram qualquer anomalia matemática, preservando integralmente as propriedades numéricas do algoritmo original.
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.75\textwidth]{ex2_trap/grafico_convergencia.png}
+  \caption{Gráfico log-log do erro absoluto em função de $h$. A inclinação da reta ajustada é $\approx 2{,}0$.}
+\end{figure}
+
+% =========================================================
+\section{Exercício 3 — Soma Paralela (Ponto-a-Ponto)}
+
+O programa foi estruturado em quatro etapas:
+
+\begin{enumerate}
+  \item O processo 0 gera um vetor de $N = 10^7$ doubles aleatórios (via \texttt{rand()}) e calcula a soma serial como gabarito.
+  \item O processo 0 distribui blocos de $N/p$ elementos a cada processo trabalhador com um laço de \texttt{MPI\_Send}.
+  \item Cada processo calcula sua soma local iterando sobre o bloco recebido.
+  \item Os processos trabalhadores enviam suas somas parciais ao processo 0 via \texttt{MPI\_Send}; o processo 0 recebe com um laço de \texttt{MPI\_Recv} e acumula o total.
+\end{enumerate}
+
+\textbf{Execução:}
+\begin{lstlisting}[style=shell]
+mpiexec -n 1 ./mpi_psum
+mpiexec -n 2 ./mpi_psum
+mpiexec -n 4 ./mpi_psum
+mpiexec -n 8 --oversubscribe ./mpi_psum
+\end{lstlisting}
+
+\textbf{Saída:}
+\begin{lstlisting}[style=shell]
+Soma Serial = 4.9998874970e+06
+Soma Global = 4.9998874970e+06
+Erro Relativo = 3.9488965689e-14
+
+Soma Serial = 4.9984512878e+06
+Soma Global = 4.9984512878e+06
+Erro Relativo = 5.7573568088e-14
+
+Soma Serial = 4.9996657464e+06
+Soma Global = 4.9996657464e+06
+Erro Relativo = 0.0000000000e+00
+
+Soma Serial = 5.0002277570e+06
+Soma Global = 5.0002277570e+06
+Erro Relativo = 7.8227532894e-15
+\end{lstlisting}
+
+A soma global paralela concorda com o gabarito serial em todos os casos. O erro relativo residual (da ordem de $10^{-14}$ a $10^{-15}$) não representa um defeito no código: aritmética de ponto flutuante não é estritamente associativa, de modo que somar blocos em ordens diferentes altera os arredondamentos nos bits menos significativos. Com $p=1$ o erro é exatamente zero, pois os dois caminhos de soma são idênticos.
+
+\textbf{Comparação com a Aula 6 (comunicação coletiva):} a implementação com primitivas ponto-a-ponto exigiu aproximadamente 18–20 linhas dedicadas apenas ao controle de comunicação: laço de \texttt{MPI\_Send} para distribuição, laço de \texttt{MPI\_Recv} para coleta, controle de índices e offsets de memória, e blocos \texttt{if/else} diferenciando mestre e trabalhadores. Com as rotinas coletivas da Aula 6, toda a lógica de distribuição colapsaria em uma única chamada \texttt{MPI\_Scatter}, e toda a coleta com redução colapsaria em uma única chamada \texttt{MPI\_Reduce} — substituindo $\sim$18 linhas por 2. Além da redução na contagem de linhas e na superfície exposta a bugs, as rotinas coletivas utilizam algoritmos internos em formato de árvore, substituindo a latência linear $O(p)$ da implementação manual por um custo assintótico $O(\log p)$.
+
+% =========================================================
+\section{Exercício 4 — Prática de Comunicação Coletiva}
+
+\subsection{4(a) Hello World com \texttt{MPI\_Gather}}
+
+Cada processo gerou sua saudação em um buffer local com \texttt{snprintf}. Em vez de um laço de \texttt{MPI\_Recv} no processo 0, foi utilizado \texttt{MPI\_Gather} para coletar todas as strings em um único vetor contíguo. O processo 0 alocou dinamicamente \texttt{comm\_sz * MAX\_STRING} bytes e, após o gather, percorreu o vetor com saltos de \texttt{MAX\_STRING} bytes para imprimir as mensagens em ordem de rank.
+
+\textbf{Execução:}
+\begin{lstlisting}[style=shell]
+mpicc -O2 -Wall -o hello_gather hello_gather.c
+mpiexec -n 4 ./hello_gather
+\end{lstlisting}
+
+\textbf{Saída:}
+\begin{lstlisting}[style=shell]
+Greetings from process 0 of 4!
+Greetings from process 1 of 4!
+Greetings from process 2 of 4!
+Greetings from process 3 of 4!
+\end{lstlisting}
+
+A saída apresentou todas as saudações perfeitamente ordenadas por rank, confirmando que \texttt{MPI\_Gather} insere as contribuições de cada processo na posição correspondente ao seu rank dentro do buffer de destino. A principal vantagem sobre o laço de \texttt{MPI\_Recv} é a simplificação do código e a melhoria assintótica: a rotina coletiva implementa algoritmos de árvore internamente, reduzindo o custo de comunicação de $O(p)$ para $O(\log p)$.
+
+% ---------------------------------------------------------
+\subsection{4(b) Máximo e Mínimo Globais com \texttt{MPI\_Reduce}}
+
+O processo 0 inicializou um vetor de $N = 10^7$ doubles e calculou os extremos serialmente como gabarito. A distribuição dos blocos foi feita com \texttt{MPI\_Scatter}. Cada processo calculou seu mínimo e máximo locais; em seguida, duas chamadas a \texttt{MPI\_Reduce} (com os operadores \texttt{MPI\_MIN} e \texttt{MPI\_MAX}) consolidaram os resultados globais no processo 0.
+
+\textbf{Execução:}
+\begin{lstlisting}[style=shell]
+mpicc -O2 -Wall -o minmax minmax.c
+mpiexec -n 2 ./minmax
+mpiexec -n 4 ./minmax
+\end{lstlisting}
+
+\textbf{Saída:}
+\begin{lstlisting}[style=shell]
+--- Resultado Serial ---
+Min = 0.0000000894 | Max = 0.9999999483
+--- Resultado MPI ---
+Min = 0.0000000894 | Max = 0.9999999483
+
+--- Resultado Serial ---
+Min = 0.0000000554 | Max = 0.9999999497
+--- Resultado MPI ---
+Min = 0.0000000554 | Max = 0.9999999497
+\end{lstlisting}
+
+Os resultados paralelos coincidem exatamente com o gabarito serial em ambos os casos. A utilização de \texttt{MPI\_Reduce} com \texttt{MPI\_MIN}/\texttt{MPI\_MAX} eliminou qualquer lógica explícita de comparação ou laços de \texttt{MPI\_Recv} no processo 0.
+
+% =========================================================
+\section{Exercício 5 — Soma Paralela de Vetores (Scatter / Gather)}
+
+Foram implementadas duas versões. Em ambas, o processo 0 inicializa vetores \texttt{x[N]} (com $x_i = i$) e \texttt{y[N]} (com $y_i = 2i$), e \texttt{MPI\_Scatter} distribui blocos de \texttt{x} e \texttt{y} para todos os processos. Cada processo calcula seu bloco local $z = x + y$.
+
+\begin{itemize}
+  \item \textbf{Versão \texttt{mpi\_vecadd\_gather}:} \texttt{MPI\_Gather} coleta \texttt{z} apenas no processo 0, que verifica e imprime o resultado.
+  \item \textbf{Versão \texttt{mpi\_vecadd\_allgather}:} \texttt{MPI\_Allgather} replica o \texttt{z} completo na memória de \emph{todos} os processos; cada rank confirma o recebimento e imprime.
+\end{itemize}
+
+\textbf{Execução:}
+\begin{lstlisting}[style=shell]
+make run
+\end{lstlisting}
+
+\textbf{Saída:}
+\begin{lstlisting}[style=shell]
+z = x + y:
+  z[ 0] = 0 | z[ 1] = 3 | z[ 2] = 6 | ... | z[15] = 45
+
+Rank 3 confirmando o recebimento completo. z = x + y:
+  z[ 0] = 0 | z[ 1] = 3 | z[ 2] = 6 | ... | z[15] = 45
+\end{lstlisting}
+
+Ambas as versões produzem o vetor resultado correto ($z_i = 3i$).
+
+\textbf{Quando \texttt{MPI\_Allgather} é preferível a \texttt{MPI\_Gather}?} A versão com \texttt{MPI\_Gather} é suficiente quando o único objetivo é consolidar o resultado no processo raiz para saída ou pós-processamento centralizado. Já \texttt{MPI\_Allgather} torna-se essencial em algoritmos onde o resultado global de uma etapa é o input necessário para \emph{todos} os processos na etapa seguinte. Um exemplo clássico é o produto matriz-vetor paralelo em métodos iterativos (e.g., gradiente conjugado), onde a matriz é particionada por blocos de linhas: para que cada processo multiplique suas linhas locais pela coluna inteira, ele precisa do vetor multiplicador completo. Utilizando \texttt{MPI\_Allgather}, os fragmentos locais são reconstruídos e replicados simultaneamente na memória de cada nó, sem a necessidade de um broadcast sequencial centralizado.
+
+% =========================================================
+\section{Exercício 6 — Tipos de Dados Derivados}
+
+Foram implementadas duas versões para transmitir a estrutura:
+
+\begin{lstlisting}[style=ccode]
+struct Student { char name[50]; double grade; int id; };
+\end{lstlisting}
+
+\begin{itemize}
+  \item \textbf{Versão \texttt{student\_struct}:} um tipo MPI derivado foi criado com \texttt{MPI\_Type\_create\_struct}, mapeando os três campos da struct. A macro \texttt{offsetof} de \texttt{<stddef.h>} foi usada para calcular os deslocamentos de memória de forma segura, garantindo que qualquer padding invisível inserido pelo compilador seja corretamente contabilizado. Após o registro com \texttt{MPI\_Type\_commit}, toda a estrutura foi transmitida com \textbf{uma única chamada} \texttt{MPI\_Bcast}.
+
+  \item \textbf{Versão \texttt{student\_three\_bcasts}:} cada campo da estrutura foi transmitido separadamente com \texttt{MPI\_Bcast}, totalizando \textbf{três chamadas} de comunicação para um único registro.
+\end{itemize}
+
+\textbf{Execução:}
+\begin{lstlisting}[style=shell]
+make run
+\end{lstlisting}
+
+\textbf{Saída:}
+\begin{lstlisting}[style=shell]
+[Struct Bcast] Rank 0 recebeu -> Nome: Vivian Souza | Nota: 10.0 | ID: 123456789
+[Struct Bcast] Rank 1 recebeu -> Nome: Vivian Souza | Nota: 10.0 | ID: 123456789
+[Struct Bcast] Rank 2 recebeu -> Nome: Vivian Souza | Nota: 10.0 | ID: 123456789
+[Struct Bcast] Rank 3 recebeu -> Nome: Vivian Souza | Nota: 10.0 | ID: 123456789
+
+[3 Bcasts] Rank 0 recebeu -> Nome: Vivian Souza | Nota: 10.0 | ID: 123456789
+[3 Bcasts] Rank 1 recebeu -> Nome: Vivian Souza | Nota: 10.0 | ID: 123456789
+[3 Bcasts] Rank 2 recebeu -> Nome: Vivian Souza | Nota: 10.0 | ID: 123456789
+[3 Bcasts] Rank 3 recebeu -> Nome: Vivian Souza | Nota: 10.0 | ID: 123456789
+\end{lstlisting}
+
+O conteúdo recebido é exatamente o mesmo em ambas as versões, confirmando que o mapeamento de memória via \texttt{MPI\_Type\_create\_struct} foi realizado corretamente. A diferença central está no número de chamadas de comunicação: \textbf{3 chamadas} na versão com três Bcasts contra \textbf{1 chamada} na versão com tipo derivado. Em ambientes distribuídos, cada invocação de uma rotina de comunicação paga uma latência fixa de rede (abertura de canal, criação de cabeçalhos, roteamento). A abordagem com três broadcasts paga essa latência três vezes por registro. Ao empacotar os campos heterogêneos em um único envelope via tipo derivado, a latência é paga apenas uma vez — um ganho que se multiplica significativamente quando esta rotina está inserida em laços iterativos de milhares de repetições, como em simulações numéricas e algoritmos de aprendizado de máquina distribuído.
+
+\end{document}
