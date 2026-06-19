@@ -72,7 +72,7 @@ int main(void) {
             total_integral += local_integral;
         }
     }
--
+
     MPI_Barrier(MPI_COMM_WORLD); // Garante que todos terminaram antes de parar o relógio
     double finish = MPI_Wtime();
     double local_elapsed = finish - start;
